@@ -16,10 +16,12 @@ import java.net.Socket;
 import java.util.HashSet;
 
 public class Connection implements Runnable {
+    private boolean isHost;
     private String name;
     private Socket socket;
     private PrintWriter out;
     private boolean command;
+    public boolean gameIsStarted; //to transition from lobby to game
 
     //The set of all the print writers for all the clients.
     //This set is kept so we can easily broadcast messages.
@@ -29,13 +31,14 @@ public class Connection implements Runnable {
     private BufferedReader bReader;
     private String serverMessage; //default server message
 
-    public Connection(Socket socket, String serverMessage) {
+    public Connection(Socket socket, String serverMessage, boolean isHost) {
         if (socket == null) {
             return;
         }
 
         this.socket = socket;
         this.serverMessage = serverMessage;
+        this.isHost = isHost;
 
         try {
             //initialize our writers and readers
@@ -72,6 +75,13 @@ public class Connection implements Runnable {
                     out.println("Current working commands: \\disconnect and \\setname");
                     command = true; //don't want to show other players that a command was entered
                 }
+                if(clientMessage.equals("\\startgame") && isHost){
+                    for (PrintWriter writer : writers) {
+                        writer.println("Game is starting");
+                    }
+                    gameIsStarted = true;
+                    command = true; //don't want to show other players that a command was entered
+                }
                 //this is the \setname command
                 if(clientMessage.equals("\\setname")){
                     out.println("Enter your new name");
@@ -89,15 +99,15 @@ public class Connection implements Runnable {
                 if(!command){
                     for (PrintWriter writer: writers) {
                         writer.println(getName() + " : " + clientMessage);
-                        System.out.println(getName() + " : " + clientMessage);
                     }
+                    System.out.println(getName() + " : " + clientMessage);
                 }
                 command=false;
             }
             //tell everyone when someone disconnects
             System.out.print(getName() + " has disconnected.\n");
             for (PrintWriter writer: writers) {
-            writer.println(getName() + " has disconnected.\n");
+                writer.println(getName() + " has disconnected.\n");
             }
             //done communicating
             bReader.close();
