@@ -15,9 +15,7 @@ import java.net.Socket;
 
 public class Connection implements Runnable {
     private String name;
-
     private Socket socket;
-
     private PrintWriter writer;
     //input stream reads sequences of bytes
     private InputStreamReader isReader;
@@ -25,7 +23,7 @@ public class Connection implements Runnable {
     private BufferedReader bReader;
 
     private String clientMessage; //message from client
-    private String serverMessage; //default server mesasge
+    private String serverMessage; //default server message
 
     public Connection(Socket socket, String serverMessage) {
         if (socket == null) {
@@ -40,6 +38,7 @@ public class Connection implements Runnable {
             this.writer = new PrintWriter(this.socket.getOutputStream());
             this.isReader = new InputStreamReader(this.socket.getInputStream());
             this.bReader = new BufferedReader(isReader);
+            System.out.print("Client at: " + socket.getInetAddress().getHostAddress() + " has connected.\n");
         }
         catch(IOException e) {
             System.out.println(e.getMessage());
@@ -57,10 +56,13 @@ public class Connection implements Runnable {
             //first write our default server message
             write(this.serverMessage);
 
-            while ((clientMessage = bReader.readLine()) != null) {
+            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //print the message out
+                //we don't need to see disconnect commands, so throw those out
                 System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
             }
+
+            System.out.print(socket.getInetAddress().getHostAddress() + " has disconnected.\n");
             //done communicating
             bReader.close();
             writer.close();
@@ -77,7 +79,13 @@ public class Connection implements Runnable {
     }
 
     private void read() {
-        if (clientMessage = bReader.readLine())
+        try {
+            if ((clientMessage = bReader.readLine()) != null){
+                clientMessage = bReader.readLine();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private String getName() { return this.name; }
