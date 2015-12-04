@@ -37,16 +37,16 @@ public class Server implements Runnable {
                         "Error accepting client connection", e);
             }
 
-            //First connection is a Host, all others connect as a Player
+            //First connection is a host, all others connect as a player
             if(this.clientCount==0) {
                 this.threadPool.execute(
-                        new Host(clientSocket,outputMessage));
+                        new Connection(clientSocket,outputMessage, true));
                 clientCount = clientCount+1;
                 System.out.println("Host connected!");
             }
             else{
                 this.threadPool.execute(
-                        new Player(clientSocket,outputMessage));
+                        new Connection(clientSocket,outputMessage, false));
                 System.out.println("Player connected!");
             }
         }
