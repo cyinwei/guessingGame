@@ -36,7 +36,7 @@ public class Server implements Runnable {
                         "Error accepting client connection", e);
             }
             this.threadPool.execute(
-                    new Client(clientSocket,outputMessage));
+                    new Connection(clientSocket,outputMessage));
         }
         this.threadPool.shutdown();
         System.out.println("Server is kill");
