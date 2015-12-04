@@ -6,7 +6,7 @@
  * <p>
  * It'll handle default options, messages, stuff like that.
  *
- * I added the hashet for handling broadcasts - p
+ * I added the hashset for handling broadcasts - p
  *
  */
 
@@ -24,12 +24,8 @@ public class Connection implements Runnable {
     //This set is kept so we can easily broadcast messages.
     private static HashSet<PrintWriter> writers = new HashSet<>();
 
-    //input stream reads sequences of bytes
-    private InputStreamReader isReader;
     //buffered reader takes in a stream, allowing us to get the stream line by line (strings!)
     private BufferedReader bReader;
-
-    private String clientMessage; //message from client
     private String serverMessage; //default server message
 
     public Connection(Socket socket, String serverMessage) {
@@ -43,7 +39,7 @@ public class Connection implements Runnable {
         try {
             //initialize our writers and readers
             //this.writer = new PrintWriter(this.socket.getOutputStream());
-            this.isReader = new InputStreamReader(this.socket.getInputStream());
+            InputStreamReader isReader = new InputStreamReader(this.socket.getInputStream());
             this.bReader = new BufferedReader(isReader);
             this.out = new PrintWriter(socket.getOutputStream(), true);
             writers.add(out);
@@ -67,6 +63,7 @@ public class Connection implements Runnable {
             OutputStream output = socket.getOutputStream();
             output.write((this.serverMessage).getBytes());
 
+            String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //print the message out
                 //we don't need to see disconnect commands, so throw those out
@@ -86,16 +83,6 @@ public class Connection implements Runnable {
         }
         catch(IOException e) {
             System.out.println(e.getMessage());
-        }
-    }
-
-    private void read() {
-        try {
-            if ((clientMessage = bReader.readLine()) != null){
-                clientMessage = bReader.readLine();
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
