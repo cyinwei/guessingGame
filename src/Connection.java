@@ -62,7 +62,8 @@ public class Connection implements Runnable {
             //first write our default server message
             OutputStream output = socket.getOutputStream();
             output.write((this.serverMessage).getBytes());
-
+            String defaultName = socket.getInetAddress().getHostAddress(); //default name will be the connection's address
+            setName(defaultName);
             String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //we don't need to see disconnect commands, so throw those out
@@ -70,26 +71,21 @@ public class Connection implements Runnable {
                     if(clientMessage.equals("\\setname")){
                         out.println("Enter your new name");
                         String newName = bReader.readLine();
+                        writer.println(getName() + " changed name to " + newName);
+                        System.out.println(socket.getInetAddress().getHostAddress() + " changed name to " + newName);
                         setName(newName);
-                        if(getName()!=null){
-                            writer.println(socket.getInetAddress().getHostAddress() + " changed name to " + getName());
-                            System.out.println(socket.getInetAddress().getHostAddress() + " changed name to " + getName());
                         }
-                    }
                     else {
-                        if(getName()!=null) {
                             writer.println(getName() + " : " + clientMessage);
                             System.out.println(getName() + " : " + clientMessage);
                         }
-                        else{
-                            writer.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
-                            System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
-                        }
                     }
                 }
+            //tell everyone when someone disconnects
+            System.out.print(getName() + " has disconnected.\n");
+            for (PrintWriter writer: writers) {
+            writer.println(getName() + " has disconnected.\n");
             }
-
-            System.out.print(socket.getInetAddress().getHostAddress() + " has disconnected.\n");
             //done communicating
             bReader.close();
             if (out != null) {
