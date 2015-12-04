@@ -67,18 +67,20 @@ public class Connection implements Runnable {
             String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //we don't need to see disconnect commands, so throw those out
-                for (PrintWriter writer: writers) {
-                    if(clientMessage.equals("\\setname")){
-                        out.println("Enter your new name");
-                        String newName = bReader.readLine();
+                if(clientMessage.equals("\\setname")){
+                    out.println("Enter your new name");
+                    String newName = bReader.readLine();
+                    for (PrintWriter writer: writers){
                         writer.println(getName() + " changed name to " + newName);
-                        System.out.println(socket.getInetAddress().getHostAddress() + " changed name to " + newName);
-                        setName(newName);
-                        }
-                    else {
+                    }
+                    System.out.println(getName() + " changed name to " + newName);
+                    setName(newName);
+                    clientMessage = bReader.readLine();
+                }
+                //this is just regular pre-game chat
+                for (PrintWriter writer: writers) {
                             writer.println(getName() + " : " + clientMessage);
                             System.out.println(getName() + " : " + clientMessage);
-                        }
                     }
                 }
             //tell everyone when someone disconnects
