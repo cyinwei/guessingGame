@@ -1,22 +1,29 @@
 /**
  * Created by cyinwei on 12/3/15.
+ * Edited by deaversp on 12/3/15.
  * <p>
  * Our "base class" for anyone who joins the server to play Guessing Game.
  * <p>
  * It'll handle default options, messages, stuff like that.
+ *
+ * I added the hashet for handling broadcasts - p
+ *
  */
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.lang.Runnable;
 import java.net.Socket;
+import java.util.HashSet;
 
 public class Connection implements Runnable {
     private String name;
     private Socket socket;
-    private PrintWriter writer;
+    private PrintWriter out;
+
+    //The set of all the print writers for all the clients.
+    //This set is kept so we can easily broadcast messages.
+    private static HashSet<PrintWriter> writers = new HashSet<>();
+
     //input stream reads sequences of bytes
     private InputStreamReader isReader;
     //buffered reader takes in a stream, allowing us to get the stream line by line (strings!)
@@ -31,13 +38,16 @@ public class Connection implements Runnable {
         }
 
         this.socket = socket;
-        this.serverMessage =serverMessage;
+        this.serverMessage = serverMessage;
 
         try {
             //initialize our writers and readers
-            this.writer = new PrintWriter(this.socket.getOutputStream());
+            //this.writer = new PrintWriter(this.socket.getOutputStream());
             this.isReader = new InputStreamReader(this.socket.getInputStream());
             this.bReader = new BufferedReader(isReader);
+            this.out = new PrintWriter(socket.getOutputStream(), true);
+            writers.add(out);
+
             System.out.print("Client at: " + socket.getInetAddress().getHostAddress() + " has connected.\n");
         }
         catch(IOException e) {
@@ -54,28 +64,29 @@ public class Connection implements Runnable {
 
         try {
             //first write our default server message
-            write(this.serverMessage);
+            OutputStream output = socket.getOutputStream();
+            output.write((this.serverMessage).getBytes());
 
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
+                String input = bReader.readLine();
                 //print the message out
                 //we don't need to see disconnect commands, so throw those out
-                System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
+                for (PrintWriter writer: writers) {
+                    writer.println(socket.getInetAddress().getHostAddress() + " : " + input);
+                }
             }
 
             System.out.print(socket.getInetAddress().getHostAddress() + " has disconnected.\n");
             //done communicating
             bReader.close();
-            writer.close();
+            if (out != null) {
+                writers.remove(out);
+            }
             socket.close();
         }
         catch(IOException e) {
             System.out.println(e.getMessage());
         }
-    }
-
-    private void write(String message) {
-        writer.println(serverMessage);
-        writer.flush(); //didn't enable autoflushing
     }
 
     private void read() {
