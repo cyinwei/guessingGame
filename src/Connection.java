@@ -65,11 +65,27 @@ public class Connection implements Runnable {
 
             String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
-                //print the message out
                 //we don't need to see disconnect commands, so throw those out
                 for (PrintWriter writer: writers) {
-                    writer.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
-                    System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
+                    if(clientMessage.equals("\\setname")){
+                        out.println("Enter your new name");
+                        String newName = bReader.readLine();
+                        setName(newName);
+                        if(getName()!=null){
+                            writer.println(socket.getInetAddress().getHostAddress() + " changed name to " + getName());
+                            System.out.println(socket.getInetAddress().getHostAddress() + " changed name to " + getName());
+                        }
+                    }
+                    else {
+                        if(getName()!=null) {
+                            writer.println(getName() + " : " + clientMessage);
+                            System.out.println(getName() + " : " + clientMessage);
+                        }
+                        else{
+                            writer.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
+                            System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
+                        }
+                    }
                 }
             }
 
