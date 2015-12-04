@@ -68,11 +68,11 @@ public class Connection implements Runnable {
             output.write((this.serverMessage).getBytes());
 
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
-                String input = bReader.readLine();
                 //print the message out
                 //we don't need to see disconnect commands, so throw those out
                 for (PrintWriter writer: writers) {
-                    writer.println(socket.getInetAddress().getHostAddress() + " : " + input);
+                    writer.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
+                    System.out.println(socket.getInetAddress().getHostAddress() + " : " + clientMessage);
                 }
             }
 
