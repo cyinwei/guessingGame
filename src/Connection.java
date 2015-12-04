@@ -67,11 +67,12 @@ public class Connection implements Runnable {
             setName(defaultName);
             String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
-                //we don't need to see disconnect commands, so throw those out
+                //this is the \help command
                 if(clientMessage.equals("\\help")){
                     out.println("Current working commands: \\disconnect and \\setname");
                     command = true; //don't want to show other players that a command was entered
                 }
+                //this is the \setname command
                 if(clientMessage.equals("\\setname")){
                     out.println("Enter your new name");
                     String newName = bReader.readLine();
