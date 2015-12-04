@@ -11,6 +11,7 @@ public class Server implements Runnable {
     protected boolean      isStopped     = false;
     protected Thread       runningThread = null;
     protected ExecutorService threadPool = null;
+    protected int clientCount            = 0;
 
     public Server(int port, int numOfClients, String outputMessage){
         this.serverPort = port;
@@ -35,8 +36,19 @@ public class Server implements Runnable {
                 throw new RuntimeException(
                         "Error accepting client connection", e);
             }
-            this.threadPool.execute(
-                    new Connection(clientSocket,outputMessage));
+
+            //First connection is a Host, all others connect as a Player
+            if(this.clientCount==0) {
+                this.threadPool.execute(
+                        new Host(clientSocket,outputMessage));
+                clientCount = clientCount+1;
+                System.out.println("Host connected!");
+            }
+            else{
+                this.threadPool.execute(
+                        new Player(clientSocket,outputMessage));
+                System.out.println("Player connected!");
+            }
         }
         this.threadPool.shutdown();
         System.out.println("Server is kill");
