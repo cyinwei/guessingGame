@@ -18,10 +18,11 @@ import java.util.HashSet;
 public class Connection implements Runnable {
     private boolean isHost;
     private String name;
+    private String secret;
     private Socket socket;
     private PrintWriter out;
     private boolean command;
-    public boolean gameIsStarted; //to transition from lobby to game
+    public static boolean gameIsStarted; //to transition from lobby to game
 
     //The set of all the print writers for all the clients.
     //This set is kept so we can easily broadcast messages.
@@ -69,12 +70,16 @@ public class Connection implements Runnable {
             String defaultName = socket.getInetAddress().getHostAddress(); //default name will be the connection's address
             setName(defaultName);
             String clientMessage;
-            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
+            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect") && !gameIsStarted) {
                 //this is the \help command
                 if(clientMessage.equals("\\help")){
-                    out.println("Current working commands: \\disconnect and \\setname");
+                    out.println("Current working commands: \\disconnect \\setname");
+                    if(isHost){
+                        out.println("Host commands: \\startgame");
+                    }
                     command = true; //don't want to show other players that a command was entered
                 }
+                //this is the \startgame command
                 if(clientMessage.equals("\\startgame") && isHost){
                     for (PrintWriter writer : writers) {
                         writer.println("Game is starting");
@@ -98,11 +103,29 @@ public class Connection implements Runnable {
                 //this lets the reader be set back to clientMessage
                 if(!command){
                     for (PrintWriter writer: writers) {
+                        if(isHost){ writer.print("HOST "); }
+                        if(!isHost){ writer.print("PLAYER ");}
                         writer.println(getName() + " : " + clientMessage);
                     }
+                    if(isHost){ System.out.print("HOST "); }
+                    if (!isHost) { System.out.print("PLAYER ");}
                     System.out.println(getName() + " : " + clientMessage);
                 }
                 command=false;
+            }
+            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect") && gameIsStarted) {
+                if(clientMessage.equals("\\setsecret") && isHost){
+                    out.println("Set secret");
+                    String newSecret = bReader.readLine();
+                    setSecret(newSecret);
+                    for (PrintWriter writer: writers){
+                        writer.println("Secret is set!");
+                    }
+                    if(isHost){ out.println("Secret set to (" + getSecret() + ")");
+                    }
+                    System.out.println("Secret set to (" + getSecret() + ")");
+                    command = true;
+                    }
             }
             //tell everyone when someone disconnects
             System.out.print(getName() + " has disconnected.\n");
@@ -123,4 +146,6 @@ public class Connection implements Runnable {
 
     private String getName() { return this.name; }
     private void setName(String name) { this.name = name; }
+    private String getSecret() { return this.secret; }
+    private void setSecret(String secret) { this.secret = secret; }
 }
