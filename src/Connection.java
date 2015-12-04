@@ -18,11 +18,12 @@ import java.util.HashSet;
 public class Connection implements Runnable {
     private boolean isHost;
     private String name;
-    private String secret;
+    private static String secret = null;
+
     private Socket socket;
     private PrintWriter out;
-    private boolean command;
-    public static boolean gameIsStarted; //to transition from lobby to game
+    public static boolean secretIsSet; //to transition from lobby to game
+    boolean isChat;
 
     //The set of all the print writers for all the clients.
     //This set is kept so we can easily broadcast messages.
@@ -62,7 +63,6 @@ public class Connection implements Runnable {
             System.out.println("Error: in SocketManager, input socket is null.");
             return;
         }
-
         try {
             //first write our default server message
             OutputStream output = socket.getOutputStream();
@@ -70,38 +70,30 @@ public class Connection implements Runnable {
             String defaultName = socket.getInetAddress().getHostAddress(); //default name will be the connection's address
             setName(defaultName);
             String clientMessage;
-            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect") && !gameIsStarted) {
-                //this is the \help command
-                if(clientMessage.equals("\\help")){
-                    out.println("Current working commands: \\disconnect \\setname");
-                    if(isHost){
-                        out.println("Host commands: \\startgame");
-                    }
-                    command = true; //don't want to show other players that a command was entered
-                }
-                //this is the \startgame command
-                if(clientMessage.equals("\\startgame") && isHost){
-                    for (PrintWriter writer : writers) {
-                        writer.println("Game is starting");
-                    }
-                    gameIsStarted = true;
-                    command = true; //don't want to show other players that a command was entered
-                }
-                //this is the \setname command
-                if(clientMessage.equals("\\setname")){
-                    out.println("Enter your new name");
-                    String newName = bReader.readLine();
-                    for (PrintWriter writer: writers){
-                        writer.println(getName() + " changed name to " + newName);
-                    }
-                    System.out.println(getName() + " changed name to " + newName);
-                    setName(newName);
-                    command = true;
-                }
+            if(isHost) {out.println( "You are the host"); }
+            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //this is just regular pre-game chat
                 //skip this and go through loop again if a command was issued
                 //this lets the reader be set back to clientMessage
-                if(!command){
+                isChat = !parseBasicConnection(clientMessage);
+
+                if (isHost && isChat) {
+                    isChat = !parseIfHost(clientMessage);
+                }
+
+                if (checkIfSecretGuessed(clientMessage)) {
+                    if (!isHost) {
+                        for (PrintWriter writer : writers) {
+                            writer.println(getName() + " has guessed the secret, " + getSecret() + "!");
+                        }
+                    }
+                    else {
+                        this.out.println("Hey, don't give away the secret!");
+                    }
+                    isChat = false;
+                }
+
+                if(isChat){
                     for (PrintWriter writer: writers) {
                         if(isHost){ writer.print("HOST "); }
                         if(!isHost){ writer.print("PLAYER ");}
@@ -111,22 +103,8 @@ public class Connection implements Runnable {
                     if (!isHost) { System.out.print("PLAYER ");}
                     System.out.println(getName() + " : " + clientMessage);
                 }
-                command=false;
             }
-            while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect") && gameIsStarted) {
-                if(clientMessage.equals("\\setsecret") && isHost){
-                    out.println("Set secret");
-                    String newSecret = bReader.readLine();
-                    setSecret(newSecret);
-                    for (PrintWriter writer: writers){
-                        writer.println("Secret is set!");
-                    }
-                    if(isHost){ out.println("Secret set to (" + getSecret() + ")");
-                    }
-                    System.out.println("Secret set to (" + getSecret() + ")");
-                    command = true;
-                    }
-            }
+
             //tell everyone when someone disconnects
             System.out.print(getName() + " has disconnected.\n");
             for (PrintWriter writer: writers) {
@@ -142,6 +120,71 @@ public class Connection implements Runnable {
         catch(IOException e) {
             System.out.println(e.getMessage());
         }
+    }
+
+    public boolean parseBasicConnection(String input) {
+        //this is the \help command
+        if(input.equals("\\help")){
+            out.println("Current working commands: \\disconnect \\setname");
+            if(isHost){
+                out.println("Host commands: \\startgame");
+            }
+            return true; //don't want to show other players that a command was entered
+        }
+        //this is the \setname command
+        if(input.equals("\\setname")){
+            try {
+                out.println("Enter your new name");
+                String newName = bReader.readLine();
+                for (PrintWriter writer : writers) {
+                    writer.println(getName() + " changed name to " + newName);
+                }
+                System.out.println(getName() + " changed name to " + newName);
+                setName(newName);
+                return true;
+            }
+            catch (IOException e) {
+                throw new RuntimeException("Error setting name.", e);
+            }
+        }
+        return false;
+    }
+
+    public boolean parseIfHost(String input) {
+        //this is the \setsecret command for the host
+        if(input.equals("\\setsecret")){
+            try {
+                out.println("Set secret");
+                String newSecret = bReader.readLine();
+                setSecret(newSecret);
+                for (PrintWriter writer : writers) {
+                    writer.println("Secret is set!");
+                }
+                if (isHost) {
+                    out.println("Secret set to (" + getSecret() + ")");
+                }
+                System.out.println("Secret set to (" + getSecret() + ")");
+                return true;
+            } catch (IOException e) {
+                throw new RuntimeException("Error getting secret", e);
+            }
+        }
+        //this is the \endgame command for the host
+        if(input.equals("\\endgame")) {
+            for (PrintWriter writer : writers) {
+                writer.println("Game over");
+            }
+            this.setSecret(null);
+            return true;
+        }
+        return false;
+    }
+
+    public boolean checkIfSecretGuessed(String input) {
+        if (input.equals(this.getSecret())) {
+            return true;
+        }
+        else return false;
     }
 
     private String getName() { return this.name; }
