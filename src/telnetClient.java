@@ -1,4 +1,3 @@
-package telnetClient;
 /**
  * Default "telnet" -like client for us to use in order to play "Guessing Game."
  */
