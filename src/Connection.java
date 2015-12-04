@@ -19,6 +19,7 @@ public class Connection implements Runnable {
     private String name;
     private Socket socket;
     private PrintWriter out;
+    private boolean command;
 
     //The set of all the print writers for all the clients.
     //This set is kept so we can easily broadcast messages.
@@ -67,6 +68,10 @@ public class Connection implements Runnable {
             String clientMessage;
             while ((clientMessage = bReader.readLine()) != null && !clientMessage.equals("\\disconnect")) {
                 //we don't need to see disconnect commands, so throw those out
+                if(clientMessage.equals("\\help")){
+                    out.println("Current working commands: \\disconnect and \\setname");
+                    command = true; //don't want to show other players that a command was entered
+                }
                 if(clientMessage.equals("\\setname")){
                     out.println("Enter your new name");
                     String newName = bReader.readLine();
@@ -75,14 +80,19 @@ public class Connection implements Runnable {
                     }
                     System.out.println(getName() + " changed name to " + newName);
                     setName(newName);
-                    clientMessage = bReader.readLine();
+                    command = true;
                 }
                 //this is just regular pre-game chat
-                for (PrintWriter writer: writers) {
-                            writer.println(getName() + " : " + clientMessage);
-                            System.out.println(getName() + " : " + clientMessage);
+                //skip this and go through loop again if a command was issued
+                //this lets the reader be set back to clientMessage
+                if(!command){
+                    for (PrintWriter writer: writers) {
+                        writer.println(getName() + " : " + clientMessage);
+                        System.out.println(getName() + " : " + clientMessage);
                     }
                 }
+                command=false;
+            }
             //tell everyone when someone disconnects
             System.out.print(getName() + " has disconnected.\n");
             for (PrintWriter writer: writers) {
